@@ -82,8 +82,12 @@ describe('createSheet', () => {
       expect(document.querySelector('[data-key="items"]').innerHTML).toBe('Map<br>Compass');
     });
 
-    it('loadAll does nothing for missing fields', () => {
-      expect(() => sheet.loadAll()).not.toThrow();
+    it('loadAll clears fields when character has no saved data', () => {
+      document.querySelector('[data-key="name"]').textContent = 'Old Name';
+      document.querySelector('[data-key="items"]').innerHTML = 'Old Item';
+      sheet.loadAll();
+      expect(document.querySelector('[data-key="name"]').textContent).toBe('');
+      expect(document.querySelector('[data-key="items"]').innerHTML).toBe('');
     });
   });
 

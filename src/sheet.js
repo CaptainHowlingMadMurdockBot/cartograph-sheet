@@ -32,11 +32,11 @@ export function createSheet(store, opts) {
   function loadAll() {
     document.querySelectorAll('[contenteditable][data-key]').forEach(el => {
       const val = store.loadField(el.dataset.key);
-      if (val !== null) setFieldValue(el, val);
+      setFieldValue(el, val !== null ? val : '');
     });
     if (opts) {
       const food = store.loadField('food');
-      if (food !== null) opts.setFoodValue(parseInt(food) || 0);
+      opts.setFoodValue(food !== null ? parseInt(food) || 0 : 0);
       const tags = store.loadField('tags');
       if (tags !== null) {
         try { opts.setTags(JSON.parse(tags)); } catch { opts.setTags([]); }
