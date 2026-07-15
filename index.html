@@ -636,348 +636,229 @@
 
 <input type="file" id="importFile" accept=".json" style="display:none">
 
-<script>
-(function() {
-  const STORAGE_PREFIX = 'cartograph_';
-  let currentChar = 'solo';
+<script type="module">
+import { createStore } from './src/store.js';
+import { createSheet } from './src/sheet.js';
 
-  // --- DOM refs ---
-  const charSelect = document.getElementById('charSelect');
-  const tagList = document.getElementById('tagList');
-  const tagInput = document.getElementById('tagInput');
-  const tagAddBtn = document.getElementById('tagAddBtn');
-  const foodInc = document.getElementById('foodInc');
-  const foodDec = document.getElementById('foodDec');
-  const foodValue = document.getElementById('foodValue');
-  const importFile = document.getElementById('importFile');
+const STORAGE_PREFIX = 'cartograph_';
+let currentChar = 'solo';
 
-  // --- Init from URL slug (hash-based) ---
-  const slug = window.location.hash.replace(/^#\//, '');
-  if (slug) {
-    currentChar = slug;
-  }
+// --- Init from URL slug (hash-based) ---
+const slug = window.location.hash.replace(/^#\//, '');
+if (slug) currentChar = slug;
 
-  // --- Discover all characters with saved data ---
-  function discoverCharacters() {
-    const chars = new Set();
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key.startsWith(STORAGE_PREFIX)) {
-        const char = key.slice(STORAGE_PREFIX.length).split('_')[0];
-        chars.add(char);
-      }
-    }
-    return Array.from(chars).sort();
-  }
+// --- Store & Sheet ---
+const store = createStore(STORAGE_PREFIX, currentChar);
 
-  // --- Populate character dropdown ---
-  function populateCharSelect(selectChar) {
-    const chars = discoverCharacters();
-    if (chars.length === 0) chars.push('solo');
-    // Always include the current character, even if brand new with no data yet
-    if (!chars.includes(selectChar)) chars.push(selectChar);
-    charSelect.innerHTML = '';
-    chars.sort().forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c;
-      opt.textContent = c;
-      if (c === selectChar) opt.selected = true;
-      charSelect.appendChild(opt);
-    });
-  }
+// --- DOM refs ---
+const charSelect = document.getElementById('charSelect');
+const tagList = document.getElementById('tagList');
+const tagInput = document.getElementById('tagInput');
+const tagAddBtn = document.getElementById('tagAddBtn');
+const foodInc = document.getElementById('foodInc');
+const foodDec = document.getElementById('foodDec');
+const foodValue = document.getElementById('foodValue');
+const importFile = document.getElementById('importFile');
 
-  // --- Storage helpers ---
-  function storageKey(suffix) { return STORAGE_PREFIX + currentChar + '_' + suffix; }
+// --- Food helpers ---
+function getFoodValue() { return parseInt(foodValue.textContent) || 0; }
+function setFoodValue(n) { foodValue.textContent = Math.max(0, n); }
 
-  function loadField(key) {
-    try { return localStorage.getItem(storageKey(key)); } catch(e) { return null; }
-  }
-
-  function saveField(key, val) {
-    try { localStorage.setItem(storageKey(key), val); } catch(e) {}
-  }
-
-  function removeField(key) {
-    try { localStorage.removeItem(storageKey(key)); } catch(e) {}
-  }
-
-  // --- Rich-field helpers (data-rich="true" fields use innerHTML) ---
-  function getFieldValue(el) { return el.dataset.rich !== undefined ? el.innerHTML : el.textContent; }
-  function setFieldValue(el, val) { if (el.dataset.rich !== undefined) el.innerHTML = val; else el.textContent = val; }
-
-  // --- Load/save all contenteditable fields ---
-  function saveAll() {
-    document.querySelectorAll('[contenteditable][data-key]').forEach(el => {
-      saveField(el.dataset.key, getFieldValue(el));
-    });
-    saveField('food', getFoodValue());
-    saveField('tags', JSON.stringify(getTags()));
-  }
-
-  function loadAll() {
-    document.querySelectorAll('[contenteditable][data-key]').forEach(el => {
-      const val = loadField(el.dataset.key);
-      if (val !== null) setFieldValue(el, val);
-    });
-    const food = loadField('food');
-    if (food !== null) setFoodValue(parseInt(food) || 0);
-    const tags = loadField('tags');
-    if (tags !== null) {
-      try { setTags(JSON.parse(tags)); } catch(e) { setTags([]); }
-    } else {
-      setTags([]);
-    }
-  }
-
-  // --- Food +/- ---
-  function getFoodValue() {
-    return parseInt(foodValue.textContent) || 0;
-  }
-
-  function setFoodValue(n) {
-    foodValue.textContent = Math.max(0, n);
-  }
-
-  foodInc.addEventListener('click', () => {
-    setFoodValue(getFoodValue() + 1);
-    saveField('food', getFoodValue());
-  });
-
-  foodDec.addEventListener('click', () => {
-    setFoodValue(getFoodValue() - 1);
-    saveField('food', getFoodValue());
-  });
-
-  foodValue.addEventListener('input', () => {
-    saveField('food', getFoodValue());
-  });
-
-  // --- Tags ---
-  function getTags() {
-    return Array.from(tagList.querySelectorAll('.tag')).map(t => t.dataset.tag);
-  }
-
-  function setTags(tags) {
-    tagList.innerHTML = '';
-    tags.forEach(t => addTagElement(t));
-  }
-
-  function addTagElement(text) {
+// --- Tags helpers ---
+function getTags() { return Array.from(tagList.querySelectorAll('.tag')).map(t => t.dataset.tag); }
+function setTags(tags) {
+  tagList.innerHTML = '';
+  tags.forEach(t => {
     const el = document.createElement('span');
     el.className = 'tag';
-    el.dataset.tag = text;
-    el.innerHTML = `${text} <span class="tag-remove" data-tag="${text}">✕</span>`;
+    el.dataset.tag = t;
+    el.innerHTML = `${t} <span class="tag-remove" data-tag="${t}">✕</span>`;
     tagList.appendChild(el);
-  }
-
-  function addTag(text) {
-    text = text.trim();
-    if (!text) return;
-    const existing = getTags();
-    if (existing.includes(text)) return;
-    addTagElement(text);
-    saveField('tags', JSON.stringify(getTags()));
-    tagInput.value = '';
-  }
-
-  tagAddBtn.addEventListener('click', () => { addTag(tagInput.value); });
-  tagInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addTag(tagInput.value); } });
-
-  tagList.addEventListener('click', e => {
-    const remove = e.target.closest('.tag-remove');
-    if (!remove) return;
-    const tag = remove.dataset.tag;
-    const el = remove.closest('.tag');
-    if (el) el.remove();
-    saveField('tags', JSON.stringify(getTags()));
   });
+}
 
-  // --- Auto-save on input ---
+// --- Sheet (wired to food + tags) ---
+const sheet = createSheet(store, { getFoodValue, setFoodValue, getTags, setTags });
+
+// --- Populate character dropdown ---
+function populateCharSelect(selectChar) {
+  const chars = store.discoverCharacters();
+  if (chars.length === 0) chars.push('solo');
+  if (!chars.includes(selectChar)) chars.push(selectChar);
+  charSelect.innerHTML = '';
+  chars.sort().forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c;
+    opt.textContent = c;
+    if (c === selectChar) opt.selected = true;
+    charSelect.appendChild(opt);
+  });
+}
+
+// --- Character switching ---
+function switchChar(char, skipSave) {
+  if (!skipSave) sheet.saveAll();
+  store.setCharacter(char);
+  currentChar = char;
+  populateCharSelect(char);
+  sheet.loadAll();
+  history.pushState(null, '', '#/' + char);
+}
+
+charSelect.addEventListener('change', () => switchChar(charSelect.value));
+
+// --- Food +/- ---
+foodInc.addEventListener('click', () => { setFoodValue(getFoodValue() + 1); store.saveField('food', String(getFoodValue())); });
+foodDec.addEventListener('click', () => { setFoodValue(getFoodValue() - 1); store.saveField('food', String(getFoodValue())); });
+foodValue.addEventListener('input', () => store.saveField('food', String(getFoodValue())));
+
+// --- Tags ---
+function addTag(text) {
+  text = text.trim();
+  if (!text) return;
+  if (getTags().includes(text)) return;
+  setTags([...getTags(), text]);
+  store.saveField('tags', JSON.stringify(getTags()));
+  tagInput.value = '';
+}
+
+tagAddBtn.addEventListener('click', () => addTag(tagInput.value));
+tagInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addTag(tagInput.value); } });
+tagList.addEventListener('click', e => {
+  const remove = e.target.closest('.tag-remove');
+  if (!remove) return;
+  remove.closest('.tag').remove();
+  store.saveField('tags', JSON.stringify(getTags()));
+});
+
+// --- Auto-save on input ---
+document.querySelectorAll('[contenteditable][data-key]').forEach(el => {
+  el.addEventListener('input', () => store.saveField(el.dataset.key, sheet.getFieldValue(el)));
+});
+
+// --- Formatting toolbar ---
+document.querySelectorAll('.fmt-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.execCommand(btn.dataset.cmd, false, null);
+    document.querySelector('.journal-body').focus();
+  });
+});
+
+// --- Actions dropdown toggle ---
+const actionsBtn = document.querySelector('.actions-btn');
+const actionsMenu = document.querySelector('.actions-menu');
+actionsBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const isOpen = actionsMenu.classList.contains('open');
+  document.querySelectorAll('.actions-menu.open').forEach(m => m.classList.remove('open'));
+  if (!isOpen) {
+    const rect = actionsBtn.getBoundingClientRect();
+    const menuWidth = 200;
+    let left = rect.right - menuWidth;
+    if (left < 8) left = 8;
+    if (left + menuWidth > window.innerWidth - 8) left = window.innerWidth - menuWidth - 8;
+    actionsMenu.style.left = left + 'px';
+    actionsMenu.style.right = 'auto';
+    actionsMenu.style.top = (rect.bottom + 4) + 'px';
+    actionsMenu.classList.add('open');
+  }
+});
+document.addEventListener('click', () => actionsMenu.classList.remove('open'));
+
+// --- Export ---
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const data = sheet.getSheetData();
+  data._character = currentChar;
+  data._version = 1;
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `cartograph-${currentChar}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+// --- Import ---
+document.getElementById('importBtn').addEventListener('click', () => importFile.click());
+importFile.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (data._character && data._character !== currentChar) {
+        if (!confirm(`This file is for "${data._character}". Switch to that character and import?`)) return;
+        switchChar(data._character);
+      }
+      sheet.setSheetData(data);
+      sheet.saveAll();
+    } catch(err) { alert('Invalid file: ' + err.message); }
+  };
+  reader.readAsText(file);
+  importFile.value = '';
+});
+
+// --- New character ---
+document.getElementById('newCharBtn').addEventListener('click', () => {
+  const name = prompt('New character name:');
+  if (!name) return;
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'character';
+  switchChar(slug);
+});
+
+// --- Rename ---
+document.getElementById('renameCharBtn').addEventListener('click', () => {
+  const name = prompt(`Rename "${currentChar}" to:`);
+  if (!name) return;
+  const newSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'character';
+  if (newSlug === currentChar) return;
+  if (store.discoverCharacters().includes(newSlug)) {
+    if (!confirm(`"${newSlug}" already exists. Merge data into it?`)) return;
+  }
+  const keysToCopy = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith(STORAGE_PREFIX + currentChar + '_')) keysToCopy.push(key);
+  }
+  keysToCopy.forEach(k => {
+    const suffix = k.slice((STORAGE_PREFIX + currentChar).length);
+    localStorage.setItem(STORAGE_PREFIX + newSlug + suffix, localStorage.getItem(k));
+    localStorage.removeItem(k);
+  });
+  switchChar(newSlug);
+});
+
+// --- Delete ---
+document.getElementById('deleteCharBtn').addEventListener('click', () => {
+  if (!confirm(`Delete "${currentChar}" and all their data? This cannot be undone.`)) return;
+  const keysToRemove = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith(STORAGE_PREFIX + currentChar + '_')) keysToRemove.push(key);
+  }
+  keysToRemove.forEach(k => localStorage.removeItem(k));
+  const chars = store.discoverCharacters();
+  switchChar(chars.find(c => c !== currentChar) || 'solo', true);
+});
+
+// --- Reset ---
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (!confirm(`Reset "${currentChar}" sheet? This cannot be undone.`)) return;
   document.querySelectorAll('[contenteditable][data-key]').forEach(el => {
-    el.addEventListener('input', () => {
-      saveField(el.dataset.key, getFieldValue(el));
-    });
+    store.removeField(el.dataset.key);
+    el.textContent = '';
   });
+  store.removeField('food');
+  store.removeField('tags');
+  setFoodValue(0);
+  setTags([]);
+});
 
-  // --- Formatting toolbar ---
-  document.querySelectorAll('.fmt-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const cmd = btn.dataset.cmd;
-      document.execCommand(cmd, false, null);
-      // Keep focus in the journal
-      document.querySelector('.journal-body').focus();
-    });
-  });
-
-  // --- Character switching ---
-  function switchChar(char, skipSave) {
-    if (!skipSave) saveAll();
-    currentChar = char;
-    populateCharSelect(char);
-    loadAll();
-    history.pushState(null, '', '#/' + char);
-  }
-
-  charSelect.addEventListener('change', () => {
-    switchChar(charSelect.value);
-  });
-
-  // --- Actions dropdown toggle ---
-  const actionsBtn = document.querySelector('.actions-btn');
-  const actionsMenu = document.querySelector('.actions-menu');
-
-  actionsBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const isOpen = actionsMenu.classList.contains('open');
-    document.querySelectorAll('.actions-menu.open').forEach(m => m.classList.remove('open'));
-    if (!isOpen) {
-      const rect = actionsBtn.getBoundingClientRect();
-      const menuWidth = 200;
-      // Right-align menu with button
-      let left = rect.right - menuWidth;
-      // Clamp so it doesn't overflow left edge
-      if (left < 8) left = 8;
-      // Clamp so it doesn't overflow right edge
-      if (left + menuWidth > window.innerWidth - 8) {
-        left = window.innerWidth - menuWidth - 8;
-      }
-      actionsMenu.style.left = left + 'px';
-      actionsMenu.style.right = 'auto';
-      actionsMenu.style.top = (rect.bottom + 4) + 'px';
-      actionsMenu.classList.add('open');
-    }
-  });
-
-  document.addEventListener('click', () => {
-    actionsMenu.classList.remove('open');
-  });
-
-  // --- Export ---
-  function getSheetData() {
-    const data = {};
-    document.querySelectorAll('[contenteditable][data-key]').forEach(el => {
-      data[el.dataset.key] = getFieldValue(el);
-    });
-    data.food = getFoodValue();
-    data.tags = getTags();
-    return data;
-  }
-
-  function setSheetData(data) {
-    document.querySelectorAll('[contenteditable][data-key]').forEach(el => {
-      if (data[el.dataset.key] !== undefined) setFieldValue(el, data[el.dataset.key]);
-    });
-    if (data.food !== undefined) setFoodValue(parseInt(data.food) || 0);
-    if (data.tags) setTags(data.tags);
-  }
-
-  document.getElementById('exportBtn').addEventListener('click', () => {
-    const data = getSheetData();
-    data._character = currentChar;
-    data._version = 1;
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `cartograph-${currentChar}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  });
-
-  document.getElementById('importBtn').addEventListener('click', () => {
-    importFile.click();
-  });
-
-  importFile.addEventListener('change', e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      try {
-        const data = JSON.parse(ev.target.result);
-        if (data._character && data._character !== currentChar) {
-          if (!confirm(`This file is for "${data._character}". Switch to that character and import?`)) return;
-          switchChar(data._character);
-        }
-        setSheetData(data);
-        saveAll();
-      } catch(err) {
-        alert('Invalid file: ' + err.message);
-      }
-    };
-    reader.readAsText(file);
-    importFile.value = '';
-  });
-
-  document.getElementById('newCharBtn').addEventListener('click', () => {
-    const name = prompt('New character name:');
-    if (!name) return;
-    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'character';
-    switchChar(slug);
-  });
-
-  // --- Rename character ---
-  document.getElementById('renameCharBtn').addEventListener('click', () => {
-    const name = prompt(`Rename "${currentChar}" to:`);
-    if (!name) return;
-    const newSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'character';
-    if (newSlug === currentChar) return;
-    if (discoverCharacters().includes(newSlug)) {
-      if (!confirm(`"${newSlug}" already exists. Merge data into it?`)) return;
-    }
-    // Copy all keys from old slug to new slug
-    const keysToCopy = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key.startsWith(STORAGE_PREFIX + currentChar + '_')) {
-        keysToCopy.push(key);
-      }
-    }
-    keysToCopy.forEach(k => {
-      const suffix = k.slice((STORAGE_PREFIX + currentChar).length);
-      const newKey = STORAGE_PREFIX + newSlug + suffix;
-      localStorage.setItem(newKey, localStorage.getItem(k));
-      localStorage.removeItem(k);
-    });
-    switchChar(newSlug);
-  });
-
-  // --- Delete character ---
-  document.getElementById('deleteCharBtn').addEventListener('click', () => {
-    if (!confirm(`Delete "${currentChar}" and all their data? This cannot be undone.`)) return;
-    // Remove all localStorage keys for this character
-    const keysToRemove = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key.startsWith(STORAGE_PREFIX + currentChar + '_')) {
-        keysToRemove.push(key);
-      }
-    }
-    keysToRemove.forEach(k => localStorage.removeItem(k));
-    // Switch without saving (character is already gone)
-    const chars = discoverCharacters();
-    const next = chars.find(c => c !== currentChar) || 'solo';
-    switchChar(next, true);
-  });
-
-  // --- Reset ---
-  document.getElementById('resetBtn').addEventListener('click', () => {
-    if (!confirm(`Reset "${currentChar}" sheet? This cannot be undone.`)) return;
-    // Clear all keys for this character
-    document.querySelectorAll('[contenteditable][data-key]').forEach(el => {
-      removeField(el.dataset.key);
-      el.textContent = '';
-    });
-    removeField('food');
-    removeField('tags');
-    setFoodValue(0);
-    setTags([]);
-  });
-
-  // --- Init ---
-  populateCharSelect(currentChar);
-  loadAll();
-})();
+// --- Init ---
+populateCharSelect(currentChar);
+sheet.loadAll();
 </script>
 </body>
 </html>
