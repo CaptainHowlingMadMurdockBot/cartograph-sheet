@@ -127,7 +127,6 @@
     display: none;
     position: fixed;
     min-width: 180px;
-    max-width: min(90vw, 280px);
     background: #f4e8c1;
     border: 1px solid #8b5a2b;
     border-radius: 3px;
@@ -761,11 +760,20 @@
   actionsBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     const isOpen = actionsMenu.classList.contains('open');
-    // Close all menus first
     document.querySelectorAll('.actions-menu.open').forEach(m => m.classList.remove('open'));
     if (!isOpen) {
       const rect = actionsBtn.getBoundingClientRect();
-      actionsMenu.style.right = (document.body.clientWidth - rect.right) + 'px';
+      const menuWidth = 200;
+      // Right-align menu with button
+      let left = rect.right - menuWidth;
+      // Clamp so it doesn't overflow left edge
+      if (left < 8) left = 8;
+      // Clamp so it doesn't overflow right edge
+      if (left + menuWidth > window.innerWidth - 8) {
+        left = window.innerWidth - menuWidth - 8;
+      }
+      actionsMenu.style.left = left + 'px';
+      actionsMenu.style.right = 'auto';
       actionsMenu.style.top = (rect.bottom + 4) + 'px';
       actionsMenu.classList.add('open');
     }
