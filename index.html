@@ -395,13 +395,12 @@
 <body>
 <div class="sheet" id="sheet">
   <div class="toolbar">
-    <select class="char-select" id="charSelect">
-      <option value="eman">Eman</option>
-      <option value="autumn">Autumn</option>
-    </select>
+    <span style="font-family:'IM Fell English',Georgia,serif;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:#6b4226;">Character:</span>
+    <span id="charDisplay" style="font-family:'IM Fell English',Georgia,serif;font-size:0.85rem;color:#3a1f0d;font-weight:600;"></span>
     <div class="spacer"></div>
     <button id="exportBtn">Export</button>
     <button id="importBtn">Import</button>
+    <button id="newCharBtn">+ New</button>
     <button id="resetBtn">Reset</button>
   </div>
 
@@ -510,12 +509,19 @@
   let currentChar = 'eman';
 
   // --- DOM refs ---
-  const charSelect = document.getElementById('charSelect');
+  const charDisplay = document.getElementById('charDisplay');
   const tagList = document.getElementById('tagList');
   const tagInput = document.getElementById('tagInput');
   const tagAddBtn = document.getElementById('tagAddBtn');
   const foodDots = document.getElementById('foodDots');
   const importFile = document.getElementById('importFile');
+
+  // --- Init from URL slug (hash-based) ---
+  const slug = window.location.hash.replace(/^#\//, '');
+  if (slug) {
+    currentChar = slug;
+  }
+  charDisplay.textContent = currentChar;
 
   // --- Storage helpers ---
   function storageKey(suffix) { return STORAGE_PREFIX + currentChar + '_' + suffix; }
@@ -630,13 +636,10 @@
   function switchChar(char) {
     saveAll();
     currentChar = char;
+    charDisplay.textContent = char;
     loadAll();
-    history.replaceState(null, '', '?c=' + char);
+    history.pushState(null, '', '#/' + char);
   }
-
-  charSelect.addEventListener('change', () => {
-    switchChar(charSelect.value);
-  });
 
   // --- Export ---
   function getSheetData() {
@@ -683,9 +686,7 @@
         const data = JSON.parse(ev.target.result);
         if (data._character && data._character !== currentChar) {
           if (!confirm(`This file is for "${data._character}". Switch to that character and import?`)) return;
-          charSelect.value = data._character;
-          currentChar = data._character;
-          history.replaceState(null, '', '?c=' + currentChar);
+          switchChar(data._character);
         }
         setSheetData(data);
         saveAll();
@@ -695,6 +696,13 @@
     };
     reader.readAsText(file);
     importFile.value = '';
+  });
+
+  document.getElementById('newCharBtn').addEventListener('click', () => {
+    const name = prompt('New character name:');
+    if (!name) return;
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'character';
+    switchChar(slug);
   });
 
   // --- Reset ---
@@ -712,12 +720,7 @@
   });
 
   // --- Init ---
-  const params = new URLSearchParams(window.location.search);
-  const c = params.get('c');
-  if (c && (c === 'eman' || c === 'autumn')) {
-    currentChar = c;
-    charSelect.value = c;
-  }
+  charDisplay.textContent = currentChar;
   loadAll();
 })();
 </script>

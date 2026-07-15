@@ -17,11 +17,13 @@ A solo/multiplayer mapmaking TTRPG about journaling, exploration, worldbuilding,
 
 Open `index.html` in any browser. Or self-host on any static server.
 
-### URL params
+### URL slugs
 
-| Param | Example | Effect |
+| Slug | Example | Effect |
 |---|---|---|
-| `?c=name` | `?c=autumn` | Loads that character's sheet |
+| `#/name` | `index.html#/autumn` | Loads that character's sheet |
+
+Bookmark `https://captainhowlingmadmurdockbot.github.io/cartograph-sheet/#/autumn` and it opens Autumn's sheet directly.
 
 ### Toolbar
 
