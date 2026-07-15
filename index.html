@@ -434,7 +434,6 @@
     padding: 0.5rem;
     cursor: text;
     outline: none;
-    white-space: pre-wrap;
   }
 
   .journal .journal-body:empty::before {
@@ -446,6 +445,35 @@
   .journal .journal-body:focus {
     background: rgba(255,255,255,0.15);
   }
+
+  /* --- Formatting toolbar --- */
+  .fmt-toolbar {
+    display: flex;
+    gap: 0.2rem;
+    padding: 0.3rem 0.5rem;
+    border-bottom: 1px solid #d4b896;
+  }
+
+  .fmt-btn {
+    font-family: 'Crimson Text', Georgia, serif;
+    font-size: 0.85rem;
+    width: 1.8rem;
+    height: 1.6rem;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    background: transparent;
+    color: #6b4226;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.1s;
+    font-weight: 600;
+  }
+
+  .fmt-btn:hover { background: rgba(139, 90, 43, 0.12); }
+  .fmt-btn:active { background: rgba(139, 90, 43, 0.2); }
+  .fmt-btn.active { background: rgba(139, 90, 43, 0.15); border-color: #b8956a; }
 
   .footer {
     margin-top: 1rem;
@@ -573,6 +601,15 @@
 
   <div class="section journal">
     <div class="section-title">Journal</div>
+    <div class="fmt-toolbar">
+      <button class="fmt-btn" data-cmd="bold" title="Bold">B</button>
+      <button class="fmt-btn" data-cmd="italic" title="Italic" style="font-style:italic;">I</button>
+      <button class="fmt-btn" data-cmd="underline" title="Underline" style="text-decoration:underline;">U</button>
+      <button class="fmt-btn" data-cmd="strikeThrough" title="Strikethrough" style="text-decoration:line-through;">S</button>
+      <span style="color:#d4b896;padding:0 0.3rem;">|</span>
+      <button class="fmt-btn" data-cmd="insertUnorderedList" title="Bullet list" style="font-size:0.7rem;">☰</button>
+      <button class="fmt-btn" data-cmd="insertOrderedList" title="Numbered list" style="font-size:0.7rem;">#</button>
+    </div>
     <div class="journal-body" contenteditable data-ph="Record your journey..." data-key="journal"></div>
   </div>
 
@@ -747,6 +784,16 @@
       const val = el.dataset.key === 'items' || el.dataset.key === 'wounds' || el.dataset.key === 'journal'
         ? el.innerHTML : el.textContent;
       saveField(el.dataset.key, val);
+    });
+  });
+
+  // --- Formatting toolbar ---
+  document.querySelectorAll('.fmt-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cmd = btn.dataset.cmd;
+      document.execCommand(cmd, false, null);
+      // Keep focus in the journal
+      document.querySelector('.journal-body').focus();
     });
   });
 
