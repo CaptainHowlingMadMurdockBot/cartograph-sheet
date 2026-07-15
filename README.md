@@ -27,7 +27,9 @@ Bookmark `https://captainhowlingmadmurdockbot.github.io/cartograph-sheet/#/autum
 
 ### Toolbar
 
-- **Character dropdown** — switch between Eman and Autumn
+- **Character dropdown** — switch between any characters you've created
+- **+ New** — create a new character (enter a name, gets slugified)
+- **Delete** — permanently remove the current character and all their data
 - **Export** — download character data as JSON
 - **Import** — upload a previously exported JSON file
 - **Reset** — clear all data for the current character

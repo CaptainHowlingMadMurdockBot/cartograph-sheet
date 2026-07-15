@@ -406,11 +406,12 @@
 <div class="sheet" id="sheet">
   <div class="toolbar">
     <span style="font-family:'IM Fell English',Georgia,serif;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:#6b4226;">Character:</span>
-    <span id="charDisplay" style="font-family:'IM Fell English',Georgia,serif;font-size:0.85rem;color:#3a1f0d;font-weight:600;"></span>
+    <select id="charSelect" class="char-select"></select>
     <div class="spacer"></div>
     <button id="exportBtn">Export</button>
     <button id="importBtn">Import</button>
     <button id="newCharBtn">+ New</button>
+    <button id="deleteCharBtn" style="color:#8b2b2b;border-color:#8b2b2b;">Delete</button>
     <button id="resetBtn">Reset</button>
   </div>
 
@@ -515,7 +516,7 @@
   let currentChar = 'eman';
 
   // --- DOM refs ---
-  const charDisplay = document.getElementById('charDisplay');
+  const charSelect = document.getElementById('charSelect');
   const tagList = document.getElementById('tagList');
   const tagInput = document.getElementById('tagInput');
   const tagAddBtn = document.getElementById('tagAddBtn');
@@ -529,7 +530,33 @@
   if (slug) {
     currentChar = slug;
   }
-  charDisplay.textContent = currentChar;
+
+  // --- Discover all characters with saved data ---
+  function discoverCharacters() {
+    const chars = new Set();
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key.startsWith(STORAGE_PREFIX)) {
+        const char = key.slice(STORAGE_PREFIX.length).split('_')[0];
+        chars.add(char);
+      }
+    }
+    if (chars.size === 0) chars.add('eman');
+    return Array.from(chars).sort();
+  }
+
+  // --- Populate character dropdown ---
+  function populateCharSelect(selectChar) {
+    const chars = discoverCharacters();
+    charSelect.innerHTML = '';
+    chars.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c;
+      opt.textContent = c;
+      if (c === selectChar) opt.selected = true;
+      charSelect.appendChild(opt);
+    });
+  }
 
   // --- Storage helpers ---
   function storageKey(suffix) { return STORAGE_PREFIX + currentChar + '_' + suffix; }
@@ -644,10 +671,14 @@
   function switchChar(char) {
     saveAll();
     currentChar = char;
-    charDisplay.textContent = char;
+    populateCharSelect(char);
     loadAll();
     history.pushState(null, '', '#/' + char);
   }
+
+  charSelect.addEventListener('change', () => {
+    switchChar(charSelect.value);
+  });
 
   // --- Export ---
   function getSheetData() {
@@ -713,6 +744,24 @@
     switchChar(slug);
   });
 
+  // --- Delete character ---
+  document.getElementById('deleteCharBtn').addEventListener('click', () => {
+    if (!confirm(`Delete "${currentChar}" and all their data? This cannot be undone.`)) return;
+    // Remove all localStorage keys for this character
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key.startsWith(STORAGE_PREFIX + currentChar + '_')) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+    // Switch to another character
+    const chars = discoverCharacters();
+    const next = chars.find(c => c !== currentChar) || 'eman';
+    switchChar(next);
+  });
+
   // --- Reset ---
   document.getElementById('resetBtn').addEventListener('click', () => {
     if (!confirm(`Reset "${currentChar}" sheet? This cannot be undone.`)) return;
@@ -728,7 +777,7 @@
   });
 
   // --- Init ---
-  charDisplay.textContent = currentChar;
+  populateCharSelect(currentChar);
   loadAll();
 })();
 </script>
