@@ -587,11 +587,11 @@
   <div class="items-wounds">
     <div class="section list-section">
       <div class="section-title">Items</div>
-      <div class="value" contenteditable data-ph="Your belongings..." data-key="items"></div>
+      <div class="value" contenteditable data-ph="Your belongings..." data-key="items" data-rich="true"></div>
     </div>
     <div class="section list-section">
       <div class="section-title">Wounds</div>
-      <div class="value" contenteditable data-ph="Injuries & ailments..." data-key="wounds"></div>
+      <div class="value" contenteditable data-ph="Injuries & ailments..." data-key="wounds" data-rich="true"></div>
     </div>
   </div>
 
@@ -626,7 +626,7 @@
       <button class="fmt-btn" data-cmd="insertUnorderedList" title="Bullet list" style="font-size:0.7rem;">☰</button>
       <button class="fmt-btn" data-cmd="insertOrderedList" title="Numbered list" style="font-size:0.7rem;">#</button>
     </div>
-    <div class="journal-body" contenteditable data-ph="Record your journey..." data-key="journal"></div>
+    <div class="journal-body" contenteditable data-ph="Record your journey..." data-key="journal" data-rich="true"></div>
   </div>
 
   <div class="footer">Cartograph — Atlas Edition · The Ravensridge Press</div>
@@ -701,12 +701,14 @@
     try { localStorage.removeItem(storageKey(key)); } catch(e) {}
   }
 
+  // --- Rich-field helpers (data-rich="true" fields use innerHTML) ---
+  function getFieldValue(el) { return el.dataset.rich !== undefined ? el.innerHTML : el.textContent; }
+  function setFieldValue(el, val) { if (el.dataset.rich !== undefined) el.innerHTML = val; else el.textContent = val; }
+
   // --- Load/save all contenteditable fields ---
   function saveAll() {
     document.querySelectorAll('[contenteditable][data-key]').forEach(el => {
-      const val = el.dataset.key === 'items' || el.dataset.key === 'wounds' || el.dataset.key === 'journal'
-        ? el.innerHTML : el.textContent;
-      saveField(el.dataset.key, val);
+      saveField(el.dataset.key, getFieldValue(el));
     });
     saveField('food', getFoodValue());
     saveField('tags', JSON.stringify(getTags()));
@@ -715,13 +717,7 @@
   function loadAll() {
     document.querySelectorAll('[contenteditable][data-key]').forEach(el => {
       const val = loadField(el.dataset.key);
-      if (val !== null) {
-        if (el.dataset.key === 'items' || el.dataset.key === 'wounds' || el.dataset.key === 'journal') {
-          el.innerHTML = val;
-        } else {
-          el.textContent = val;
-        }
-      }
+      if (val !== null) setFieldValue(el, val);
     });
     const food = loadField('food');
     if (food !== null) setFoodValue(parseInt(food) || 0);
@@ -799,9 +795,7 @@
   // --- Auto-save on input ---
   document.querySelectorAll('[contenteditable][data-key]').forEach(el => {
     el.addEventListener('input', () => {
-      const val = el.dataset.key === 'items' || el.dataset.key === 'wounds' || el.dataset.key === 'journal'
-        ? el.innerHTML : el.textContent;
-      saveField(el.dataset.key, val);
+      saveField(el.dataset.key, getFieldValue(el));
     });
   });
 
@@ -862,8 +856,7 @@
   function getSheetData() {
     const data = {};
     document.querySelectorAll('[contenteditable][data-key]').forEach(el => {
-      data[el.dataset.key] = el.dataset.key === 'items' || el.dataset.key === 'wounds' || el.dataset.key === 'journal'
-        ? el.innerHTML : el.textContent;
+      data[el.dataset.key] = getFieldValue(el);
     });
     data.food = getFoodValue();
     data.tags = getTags();
@@ -872,13 +865,7 @@
 
   function setSheetData(data) {
     document.querySelectorAll('[contenteditable][data-key]').forEach(el => {
-      if (data[el.dataset.key] !== undefined) {
-        if (el.dataset.key === 'items' || el.dataset.key === 'wounds' || el.dataset.key === 'journal') {
-          el.innerHTML = data[el.dataset.key];
-        } else {
-          el.textContent = data[el.dataset.key];
-        }
-      }
+      if (data[el.dataset.key] !== undefined) setFieldValue(el, data[el.dataset.key]);
     });
     if (data.food !== undefined) setFoodValue(parseInt(data.food) || 0);
     if (data.tags) setTags(data.tags);
