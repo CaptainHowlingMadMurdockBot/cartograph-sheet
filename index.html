@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cartograph — Cartographer Sheet</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #2c1810;
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Crimson Text', Georgia, serif;
+    padding: 2rem 1rem;
+  }
+
+  .sheet {
+    width: 800px;
+    max-width: 100%;
+    background: #f4e8c1;
+    background-image:
+      radial-gradient(ellipse at 20% 50%, rgba(139, 90, 43, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 50%, rgba(139, 90, 43, 0.06) 0%, transparent 50%),
+      repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(139, 90, 43, 0.04) 28px, rgba(139, 90, 43, 0.04) 29px);
+    border: 3px solid #8b5a2b;
+    border-radius: 4px;
+    padding: 2.5rem 2.5rem 2rem;
+    position: relative;
+    box-shadow:
+      0 0 0 1px #6b4226,
+      0 8px 32px rgba(0,0,0,0.5),
+      inset 0 0 60px rgba(139, 90, 43, 0.1);
+  }
+
+  .sheet::before {
+    content: '';
+    position: absolute;
+    top: 8px; left: 8px; right: 8px; bottom: 8px;
+    border: 1px solid rgba(139, 90, 43, 0.25);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+
+  .sheet::after {
+    content: '✦';
+    position: absolute;
+    bottom: 1.5rem;
+    right: 2rem;
+    font-size: 4rem;
+    color: rgba(139, 90, 43, 0.08);
+    pointer-events: none;
+  }
+
+  /* --- Toolbar --- */
+  .toolbar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .toolbar button {
+    font-family: 'IM Fell English', Georgia, serif;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: #8b5a2b;
+    color: #f4e8c1;
+    border: 1px solid #6b4226;
+    border-radius: 3px;
+    padding: 0.35rem 0.75rem;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .toolbar button:hover { background: #6b4226; }
+
+  .toolbar .spacer { flex: 1; }
+
+  .char-select {
+    font-family: 'IM Fell English', Georgia, serif;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: transparent;
+    color: #8b5a2b;
+    border: 1px solid #8b5a2b;
+    border-radius: 3px;
+    padding: 0.35rem 0.5rem;
+    cursor: pointer;
+  }
+
+  .char-select option { background: #f4e8c1; color: #2c1810; }
+
+  h1 {
+    font-family: 'IM Fell English', Georgia, serif;
+    font-size: 1.8rem;
+    text-align: center;
+    color: #3a1f0d;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    border-bottom: 2px solid #8b5a2b;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+  }
+
+  h1::after {
+    content: '🗺';
+    position: absolute;
+    right: 0;
+    top: 0;
+    font-size: 1.4rem;
+    opacity: 0.5;
+  }
+
+  .header-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .field {
+    border-bottom: 1px solid #b8956a;
+    padding-bottom: 0.25rem;
+  }
+
+  .field label {
+    display: block;
+    font-family: 'IM Fell English', Georgia, serif;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #6b4226;
+    margin-bottom: 0.15rem;
+  }
+
+  .field .value {
+    font-size: 1.1rem;
+    color: #2c1810;
+    min-height: 1.6em;
+    padding: 0.1rem 0.25rem;
+    cursor: text;
+  }
+
+  .field .value:focus { outline: none; background: rgba(139, 90, 43, 0.08); }
+  .field .value[contenteditable]:empty::before { content: attr(data-ph); color: #b8956a; font-style: italic; }
+
+  .row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .section {
+    border: 1px solid #b8956a;
+    border-radius: 3px;
+    padding: 0.75rem;
+    background: rgba(255,255,255,0.3);
+  }
+
+  .section-title {
+    font-family: 'IM Fell English', Georgia, serif;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #6b4226;
+    border-bottom: 1px solid #d4b896;
+    padding-bottom: 0.3rem;
+    margin-bottom: 0.5rem;
+    text-align: center;
+  }
+
+  .big-number {
+    text-align: center;
+    font-size: 2.2rem;
+    font-family: 'IM Fell English', Georgia, serif;
+    color: #3a1f0d;
+    line-height: 1;
+    padding: 0.25rem 0;
+  }
+  .big-number[contenteditable]:empty::before { content: '0'; color: #d4b896; }
+
+  .resource-group {
+    display: flex;
+    justify-content: space-around;
+    gap: 0.5rem;
+  }
+
+  .resource-item { text-align: center; flex: 1; }
+  .resource-item label {
+    display: block;
+    font-family: 'IM Fell English', Georgia, serif;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #6b4226;
+    margin-bottom: 0.2rem;
+  }
+  .resource-item .value {
+    font-size: 1.4rem;
+    color: #3a1f0d;
+    text-align: center;
+    min-height: 1.6em;
+  }
+  .resource-item .value[contenteditable]:empty::before { content: '1'; color: #d4b896; }
+
+  .food-track {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+  .food-track label {
+    font-family: 'IM Fell English', Georgia, serif;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #6b4226;
+  }
+  .food-dots { display: flex; gap: 0.3rem; }
+  .food-dot {
+    width: 1.6rem; height: 1.6rem;
+    border: 2px solid #8b5a2b;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .food-dot.filled { background: #8b5a2b; }
+  .food-dot:hover { background: rgba(139, 90, 43, 0.3); }
+
+  .items-wounds {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .list-section { min-height: 4rem; }
+  .list-section .value {
+    font-size: 0.95rem;
+    color: #2c1810;
+    min-height: 3em;
+    padding: 0.25rem;
+    line-height: 1.5;
+  }
+  .list-section .value[contenteditable]:empty::before { content: attr(data-ph); color: #b8956a; font-style: italic; }
+
+  .joker-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .joker-type {
+    text-align: center;
+    padding: 0.5rem;
+    border: 1px solid #b8956a;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.3);
+  }
+  .joker-type label {
+    display: block;
+    font-family: 'IM Fell English', Georgia, serif;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #6b4226;
+    margin-bottom: 0.25rem;
+  }
+  .joker-type .value { font-size: 1.3rem; color: #3a1f0d; text-align: center; }
+  .joker-type .value[contenteditable]:empty::before { content: '0'; color: #d4b896; }
+  .joker-black { border-color: #3a1f0d; }
+  .joker-black label { color: #3a1f0d; }
+  .joker-red { border-color: #8b2b2b; }
+  .joker-red label { color: #8b2b2b; }
+
+  /* --- Tags --- */
+  .tags-area {
+    margin-bottom: 1.5rem;
+  }
+
+  .tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+    min-height: 2rem;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: rgba(139, 90, 43, 0.15);
+    border: 1px solid #b8956a;
+    border-radius: 3px;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.85rem;
+    color: #3a1f0d;
+  }
+
+  .tag-remove {
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: #8b5a2b;
+    line-height: 1;
+  }
+  .tag-remove:hover { color: #8b2b2b; }
+
+  .tag-input-row {
+    display: flex;
+    gap: 0.4rem;
+  }
+
+  .tag-input {
+    flex: 1;
+    font-family: 'Crimson Text', Georgia, serif;
+    font-size: 0.9rem;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #b8956a;
+    color: #2c1810;
+    padding: 0.2rem 0.25rem;
+    outline: none;
+  }
+  .tag-input::placeholder { color: #b8956a; font-style: italic; }
+
+  .tag-add-btn {
+    font-family: 'IM Fell English', Georgia, serif;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    background: transparent;
+    border: 1px solid #8b5a2b;
+    color: #8b5a2b;
+    border-radius: 3px;
+    padding: 0.2rem 0.6rem;
+    cursor: pointer;
+  }
+  .tag-add-btn:hover { background: #8b5a2b; color: #f4e8c1; }
+
+  /* --- Journal --- */
+  .journal {
+    margin-bottom: 1.5rem;
+  }
+
+  .journal .journal-body {
+    font-size: 1rem;
+    color: #2c1810;
+    line-height: 1.7;
+    min-height: 8rem;
+    padding: 0.5rem;
+    cursor: text;
+    outline: none;
+    white-space: pre-wrap;
+  }
+
+  .journal .journal-body:empty::before {
+    content: attr(data-ph);
+    color: #b8956a;
+    font-style: italic;
+  }
+
+  .journal .journal-body:focus {
+    background: rgba(255,255,255,0.15);
+  }
+
+  .footer {
+    margin-top: 1rem;
+    text-align: center;
+    font-size: 0.65rem;
+    color: #b8956a;
+    font-style: italic;
+    letter-spacing: 0.05em;
+  }
+
+  @media (max-width: 600px) {
+    body { padding: 1rem 0.5rem; }
+    .sheet { padding: 1.5rem 1rem; }
+    .header-grid { grid-template-columns: 1fr; }
+    .row-3 { grid-template-columns: 1fr; }
+    .items-wounds { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet" id="sheet">
+  <div class="toolbar">
+    <select class="char-select" id="charSelect">
+      <option value="eman">Eman</option>
+      <option value="autumn">Autumn</option>
+    </select>
+    <div class="spacer"></div>
+    <button id="exportBtn">Export</button>
+    <button id="importBtn">Import</button>
+    <button id="resetBtn">Reset</button>
+  </div>
+
+  <h1>Cartographer Sheet</h1>
+
+  <div class="header-grid">
+    <div class="field">
+      <label>Name</label>
+      <div class="value" contenteditable data-ph="Your name..." data-key="name"></div>
+    </div>
+    <div class="field">
+      <label>Pronouns</label>
+      <div class="value" contenteditable data-ph="they/them" data-key="pronouns"></div>
+    </div>
+    <div class="field">
+      <label>Reputation</label>
+      <div class="big-number" contenteditable data-ph="0" data-key="reputation"></div>
+    </div>
+  </div>
+
+  <div class="row-3">
+    <div class="section">
+      <div class="section-title">Specialisation</div>
+      <div class="value" contenteditable data-ph="e.g. Naturalist, Explorer..." data-key="specialisation" style="text-align:center;font-size:1.1rem;min-height:2em;padding:0.25rem;"></div>
+    </div>
+    <div class="section">
+      <div class="section-title">Value</div>
+      <div class="value" contenteditable data-ph="e.g. Curiosity, Freedom..." data-key="value" style="text-align:center;font-size:1.1rem;min-height:2em;padding:0.25rem;"></div>
+    </div>
+    <div class="section">
+      <div class="section-title">Disposition</div>
+      <div class="value" contenteditable data-ph="e.g. Brave, Stoic..." data-key="disposition" style="text-align:center;font-size:1.1rem;min-height:2em;padding:0.25rem;"></div>
+    </div>
+  </div>
+
+  <div class="section" style="margin-bottom:1.5rem;">
+    <div class="section-title">Resources</div>
+    <div class="resource-group">
+      <div class="resource-item">
+        <label>Coin</label>
+        <div class="value" contenteditable data-ph="1" data-key="coin"></div>
+      </div>
+      <div class="resource-item">
+        <label>Wares</label>
+        <div class="value" contenteditable data-ph="1" data-key="wares"></div>
+      </div>
+      <div class="resource-item">
+        <label>Food</label>
+        <div class="food-track">
+          <div class="food-dots" id="foodDots">
+            <div class="food-dot filled" data-idx="0"></div>
+            <div class="food-dot" data-idx="1"></div>
+            <div class="food-dot" data-idx="2"></div>
+            <div class="food-dot" data-idx="3"></div>
+            <div class="food-dot" data-idx="4"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="items-wounds">
+    <div class="section list-section">
+      <div class="section-title">Items</div>
+      <div class="value" contenteditable data-ph="Your belongings..." data-key="items"></div>
+    </div>
+    <div class="section list-section">
+      <div class="section-title">Wounds</div>
+      <div class="value" contenteditable data-ph="Injuries & ailments..." data-key="wounds"></div>
+    </div>
+  </div>
+
+  <div class="joker-section">
+    <div class="joker-type joker-black">
+      <label>Black Jokers</label>
+      <div class="value" contenteditable data-ph="0" data-key="blackJokers"></div>
+    </div>
+    <div class="joker-type joker-red">
+      <label>Red Jokers</label>
+      <div class="value" contenteditable data-ph="0" data-key="redJokers"></div>
+    </div>
+  </div>
+
+  <div class="section tags-area">
+    <div class="section-title">Tags</div>
+    <div class="tag-list" id="tagList"></div>
+    <div class="tag-input-row">
+      <input class="tag-input" id="tagInput" type="text" placeholder="Add a tag..." />
+      <button class="tag-add-btn" id="tagAddBtn">+ Add</button>
+    </div>
+  </div>
+
+  <div class="section journal">
+    <div class="section-title">Journal</div>
+    <div class="journal-body" contenteditable data-ph="Record your journey..." data-key="journal"></div>
+  </div>
+
+  <div class="footer">Cartograph — Atlas Edition · The Ravensridge Press</div>
+</div>
+
+<input type="file" id="importFile" accept=".json" style="display:none">
+
+<script>
+(function() {
+  const STORAGE_PREFIX = 'cartograph_';
+  let currentChar = 'eman';
+
+  // --- DOM refs ---
+  const charSelect = document.getElementById('charSelect');
+  const tagList = document.getElementById('tagList');
+  const tagInput = document.getElementById('tagInput');
+  const tagAddBtn = document.getElementById('tagAddBtn');
+  const foodDots = document.getElementById('foodDots');
+  const importFile = document.getElementById('importFile');
+
+  // --- Storage helpers ---
+  function storageKey(suffix) { return STORAGE_PREFIX + currentChar + '_' + suffix; }
+
+  function loadField(key) {
+    try { return localStorage.getItem(storageKey(key)); } catch(e) { return null; }
+  }
+
+  function saveField(key, val) {
+    try { localStorage.setItem(storageKey(key), val); } catch(e) {}
+  }
+
+  function removeField(key) {
+    try { localStorage.removeItem(storageKey(key)); } catch(e) {}
+  }
+
+  // --- Load/save all contenteditable fields ---
+  function saveAll() {
+    document.querySelectorAll('[contenteditable][data-key]').forEach(el => {
+      saveField(el.dataset.key, el.textContent);
+    });
+    saveField('food', getFoodValue());
+    saveField('tags', JSON.stringify(getTags()));
+  }
+
+  function loadAll() {
+    document.querySelectorAll('[contenteditable][data-key]').forEach(el => {
+      const val = loadField(el.dataset.key);
+      if (val !== null) el.textContent = val;
+    });
+    const food = loadField('food');
+    if (food !== null) setFoodValue(parseInt(food) || 0);
+    const tags = loadField('tags');
+    if (tags !== null) {
+      try { setTags(JSON.parse(tags)); } catch(e) { setTags([]); }
+    } else {
+      setTags([]);
+    }
+  }
+
+  // --- Food dots ---
+  function getFoodValue() {
+    return document.querySelectorAll('.food-dot.filled').length;
+  }
+
+  function setFoodValue(n) {
+    const dots = document.querySelectorAll('.food-dot');
+    dots.forEach((d, i) => d.classList.toggle('filled', i < n));
+  }
+
+  foodDots.addEventListener('click', e => {
+    const dot = e.target.closest('.food-dot');
+    if (!dot) return;
+    const idx = parseInt(dot.dataset.idx);
+    const dots = document.querySelectorAll('.food-dot');
+    if (dot.classList.contains('filled')) {
+      for (let i = idx; i < dots.length; i++) dots[i].classList.remove('filled');
+    } else {
+      for (let i = 0; i <= idx; i++) dots[i].classList.add('filled');
+    }
+    saveField('food', getFoodValue());
+  });
+
+  // --- Tags ---
+  function getTags() {
+    return Array.from(tagList.querySelectorAll('.tag')).map(t => t.dataset.tag);
+  }
+
+  function setTags(tags) {
+    tagList.innerHTML = '';
+    tags.forEach(t => addTagElement(t));
+  }
+
+  function addTagElement(text) {
+    const el = document.createElement('span');
+    el.className = 'tag';
+    el.dataset.tag = text;
+    el.innerHTML = `${text} <span class="tag-remove" data-tag="${text}">✕</span>`;
+    tagList.appendChild(el);
+  }
+
+  function addTag(text) {
+    text = text.trim();
+    if (!text) return;
+    const existing = getTags();
+    if (existing.includes(text)) return;
+    addTagElement(text);
+    saveField('tags', JSON.stringify(getTags()));
+    tagInput.value = '';
+  }
+
+  tagAddBtn.addEventListener('click', () => { addTag(tagInput.value); });
+  tagInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addTag(tagInput.value); } });
+
+  tagList.addEventListener('click', e => {
+    const remove = e.target.closest('.tag-remove');
+    if (!remove) return;
+    const tag = remove.dataset.tag;
+    const el = remove.closest('.tag');
+    if (el) el.remove();
+    saveField('tags', JSON.stringify(getTags()));
+  });
+
+  // --- Auto-save on input ---
+  document.querySelectorAll('[contenteditable][data-key]').forEach(el => {
+    el.addEventListener('input', () => {
+      saveField(el.dataset.key, el.textContent);
+    });
+  });
+
+  // --- Character switching ---
+  function switchChar(char) {
+    saveAll();
+    currentChar = char;
+    loadAll();
+    history.replaceState(null, '', '?c=' + char);
+  }
+
+  charSelect.addEventListener('change', () => {
+    switchChar(charSelect.value);
+  });
+
+  // --- Export ---
+  function getSheetData() {
+    const data = {};
+    document.querySelectorAll('[contenteditable][data-key]').forEach(el => {
+      data[el.dataset.key] = el.textContent;
+    });
+    data.food = getFoodValue();
+    data.tags = getTags();
+    return data;
+  }
+
+  function setSheetData(data) {
+    document.querySelectorAll('[contenteditable][data-key]').forEach(el => {
+      if (data[el.dataset.key] !== undefined) el.textContent = data[el.dataset.key];
+    });
+    if (data.food !== undefined) setFoodValue(parseInt(data.food) || 0);
+    if (data.tags) setTags(data.tags);
+  }
+
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const data = getSheetData();
+    data._character = currentChar;
+    data._version = 1;
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cartograph-${currentChar}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('importBtn').addEventListener('click', () => {
+    importFile.click();
+  });
+
+  importFile.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (data._character && data._character !== currentChar) {
+          if (!confirm(`This file is for "${data._character}". Switch to that character and import?`)) return;
+          charSelect.value = data._character;
+          currentChar = data._character;
+          history.replaceState(null, '', '?c=' + currentChar);
+        }
+        setSheetData(data);
+        saveAll();
+      } catch(err) {
+        alert('Invalid file: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    importFile.value = '';
+  });
+
+  // --- Reset ---
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    if (!confirm(`Reset "${currentChar}" sheet? This cannot be undone.`)) return;
+    // Clear all keys for this character
+    document.querySelectorAll('[contenteditable][data-key]').forEach(el => {
+      removeField(el.dataset.key);
+      el.textContent = '';
+    });
+    removeField('food');
+    removeField('tags');
+    setFoodValue(0);
+    setTags([]);
+  });
+
+  // --- Init ---
+  const params = new URLSearchParams(window.location.search);
+  const c = params.get('c');
+  if (c && (c === 'eman' || c === 'autumn')) {
+    currentChar = c;
+    charSelect.value = c;
+  }
+  loadAll();
+})();
+</script>
+</body>
+</html>
