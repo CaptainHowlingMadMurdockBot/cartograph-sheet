@@ -513,7 +513,7 @@
 <script>
 (function() {
   const STORAGE_PREFIX = 'cartograph_';
-  let currentChar = 'eman';
+  let currentChar = 'solo';
 
   // --- DOM refs ---
   const charSelect = document.getElementById('charSelect');
@@ -541,13 +541,13 @@
         chars.add(char);
       }
     }
-    if (chars.size === 0) chars.add('eman');
     return Array.from(chars).sort();
   }
 
   // --- Populate character dropdown ---
   function populateCharSelect(selectChar) {
     const chars = discoverCharacters();
+    if (chars.length === 0) chars.push('solo');
     charSelect.innerHTML = '';
     chars.forEach(c => {
       const opt = document.createElement('option');
@@ -758,7 +758,7 @@
     keysToRemove.forEach(k => localStorage.removeItem(k));
     // Switch to another character
     const chars = discoverCharacters();
-    const next = chars.find(c => c !== currentChar) || 'eman';
+    const next = chars.find(c => c !== currentChar) || 'solo';
     switchChar(next);
   });
 
