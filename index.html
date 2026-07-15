@@ -741,8 +741,8 @@
   });
 
   // --- Character switching ---
-  function switchChar(char) {
-    saveAll();
+  function switchChar(char, skipSave) {
+    if (!skipSave) saveAll();
     currentChar = char;
     populateCharSelect(char);
     loadAll();
@@ -885,10 +885,10 @@
       }
     }
     keysToRemove.forEach(k => localStorage.removeItem(k));
-    // Switch to another character
+    // Switch without saving (character is already gone)
     const chars = discoverCharacters();
     const next = chars.find(c => c !== currentChar) || 'solo';
-    switchChar(next);
+    switchChar(next, true);
   });
 
   // --- Reset ---
