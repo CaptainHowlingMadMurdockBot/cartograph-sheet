@@ -212,30 +212,40 @@
   }
   .resource-item .value[contenteditable]:empty::before { content: '1'; color: #d4b896; }
 
-  .food-track {
+  .food-control {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
     justify-content: center;
+    gap: 0.4rem;
   }
-  .food-track label {
+
+  .food-btn {
     font-family: 'IM Fell English', Georgia, serif;
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: #6b4226;
-  }
-  .food-dots { display: flex; gap: 0.3rem; }
-  .food-dot {
-    width: 1.6rem; height: 1.6rem;
-    border: 2px solid #8b5a2b;
-    border-radius: 50%;
+    font-size: 1.1rem;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid #8b5a2b;
+    border-radius: 3px;
     background: transparent;
+    color: #8b5a2b;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
     transition: background 0.15s;
   }
-  .food-dot.filled { background: #8b5a2b; }
-  .food-dot:hover { background: rgba(139, 90, 43, 0.3); }
+  .food-btn:hover { background: rgba(139, 90, 43, 0.15); }
+
+  .food-value {
+    font-size: 1.4rem;
+    color: #3a1f0d;
+    text-align: center;
+    min-width: 2rem;
+    padding: 0.1rem 0.25rem;
+    cursor: text;
+  }
+  .food-value[contenteditable]:empty::before { content: '0'; color: #d4b896; }
 
   .items-wounds {
     display: grid;
@@ -449,14 +459,10 @@
       </div>
       <div class="resource-item">
         <label>Food</label>
-        <div class="food-track">
-          <div class="food-dots" id="foodDots">
-            <div class="food-dot filled" data-idx="0"></div>
-            <div class="food-dot" data-idx="1"></div>
-            <div class="food-dot" data-idx="2"></div>
-            <div class="food-dot" data-idx="3"></div>
-            <div class="food-dot" data-idx="4"></div>
-          </div>
+        <div class="food-control">
+          <button class="food-btn" id="foodDec">−</button>
+          <span class="food-value" id="foodValue" contenteditable data-ph="0" data-key="food">0</span>
+          <button class="food-btn" id="foodInc">+</button>
         </div>
       </div>
     </div>
@@ -513,7 +519,9 @@
   const tagList = document.getElementById('tagList');
   const tagInput = document.getElementById('tagInput');
   const tagAddBtn = document.getElementById('tagAddBtn');
-  const foodDots = document.getElementById('foodDots');
+  const foodInc = document.getElementById('foodInc');
+  const foodDec = document.getElementById('foodDec');
+  const foodValue = document.getElementById('foodValue');
   const importFile = document.getElementById('importFile');
 
   // --- Init from URL slug (hash-based) ---
@@ -562,26 +570,26 @@
     }
   }
 
-  // --- Food dots ---
+  // --- Food +/- ---
   function getFoodValue() {
-    return document.querySelectorAll('.food-dot.filled').length;
+    return parseInt(foodValue.textContent) || 0;
   }
 
   function setFoodValue(n) {
-    const dots = document.querySelectorAll('.food-dot');
-    dots.forEach((d, i) => d.classList.toggle('filled', i < n));
+    foodValue.textContent = Math.max(0, n);
   }
 
-  foodDots.addEventListener('click', e => {
-    const dot = e.target.closest('.food-dot');
-    if (!dot) return;
-    const idx = parseInt(dot.dataset.idx);
-    const dots = document.querySelectorAll('.food-dot');
-    if (dot.classList.contains('filled')) {
-      for (let i = idx; i < dots.length; i++) dots[i].classList.remove('filled');
-    } else {
-      for (let i = 0; i <= idx; i++) dots[i].classList.add('filled');
-    }
+  foodInc.addEventListener('click', () => {
+    setFoodValue(getFoodValue() + 1);
+    saveField('food', getFoodValue());
+  });
+
+  foodDec.addEventListener('click', () => {
+    setFoodValue(getFoodValue() - 1);
+    saveField('food', getFoodValue());
+  });
+
+  foodValue.addEventListener('input', () => {
     saveField('food', getFoodValue());
   });
 
