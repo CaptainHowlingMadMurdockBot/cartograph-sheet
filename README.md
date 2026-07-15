@@ -29,6 +29,7 @@ Bookmark `https://captainhowlingmadmurdockbot.github.io/cartograph-sheet/#/autum
 
 - **Character dropdown** — switch between any characters you've created
 - **+ New** — create a new character (enter a name, gets slugified)
+- **Rename** — rename the current character (copies all data to the new slug, removes the old)
 - **Delete** — permanently remove the current character and all their data
 - **Export** — download character data as JSON
 - **Import** — upload a previously exported JSON file
