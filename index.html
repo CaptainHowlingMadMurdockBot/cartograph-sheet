@@ -97,6 +97,68 @@
 
   .char-select option { background: #f4e8c1; color: #2c1810; }
 
+  /* --- Actions dropdown --- */
+  .actions-dropdown {
+    position: relative;
+    display: inline-block;
+  }
+
+  .actions-btn {
+    font-family: 'IM Fell English', Georgia, serif;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: #8b5a2b;
+    color: #f4e8c1;
+    border: 1px solid #6b4226;
+    border-radius: 3px;
+    padding: 0.35rem 0.75rem;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+
+  .actions-btn:hover { background: #6b4226; }
+
+  .actions-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    min-width: 180px;
+    background: #f4e8c1;
+    border: 1px solid #8b5a2b;
+    border-radius: 3px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 10;
+    padding: 0.35rem 0;
+    margin-top: 0.25rem;
+  }
+
+  .actions-menu.open { display: block; }
+
+  .actions-menu button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    font-family: 'Crimson Text', Georgia, serif;
+    font-size: 0.9rem;
+    background: none;
+    border: none;
+    color: #2c1810;
+    padding: 0.4rem 1rem;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+
+  .actions-menu button:hover { background: rgba(139, 90, 43, 0.12); }
+
+  .actions-menu hr {
+    border: none;
+    border-top: 1px solid #d4b896;
+    margin: 0.3rem 0.5rem;
+  }
+
   h1 {
     font-family: 'IM Fell English', Georgia, serif;
     font-size: 1.8rem;
@@ -408,12 +470,19 @@
     <span style="font-family:'IM Fell English',Georgia,serif;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:#6b4226;">Character:</span>
     <select id="charSelect" class="char-select"></select>
     <div class="spacer"></div>
-    <button id="exportBtn">Export</button>
-    <button id="importBtn">Import</button>
-    <button id="newCharBtn">+ New</button>
-    <button id="renameCharBtn">Rename</button>
-    <button id="deleteCharBtn" style="color:#8b2b2b;border-color:#8b2b2b;">Delete</button>
-    <button id="resetBtn">Reset</button>
+    <div class="actions-dropdown">
+      <button class="actions-btn">Actions ▾</button>
+      <div class="actions-menu">
+        <button id="exportBtn">Export</button>
+        <button id="importBtn">Import</button>
+        <hr>
+        <button id="newCharBtn">+ New Character</button>
+        <button id="renameCharBtn">Rename</button>
+        <button id="deleteCharBtn" style="color:#8b2b2b;">Delete</button>
+        <hr>
+        <button id="resetBtn">Reset Sheet</button>
+      </div>
+    </div>
   </div>
 
   <h1>Cartographer Sheet</h1>
@@ -679,6 +748,16 @@
 
   charSelect.addEventListener('change', () => {
     switchChar(charSelect.value);
+  });
+
+  // --- Actions dropdown toggle ---
+  document.querySelector('.actions-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.querySelector('.actions-menu').classList.toggle('open');
+  });
+
+  document.addEventListener('click', () => {
+    document.querySelector('.actions-menu').classList.remove('open');
   });
 
   // --- Export ---
